@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { CockroachEmblem } from "./CockroachEmblem";
 
@@ -31,12 +32,12 @@ export function ManifestoBlock({ content }: { content: ContentProps }) {
           <p className="mt-8 text-lg md:text-xl text-white/70 leading-relaxed max-w-3xl">
             {content.manifesto}
           </p>
-          <a
+          <Link
             href="/manifesto"
             className="mt-10 inline-flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-crimson-300 hover:text-crimson-400 transition-colors"
           >
             Read the full manifesto →
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

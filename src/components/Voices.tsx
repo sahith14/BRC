@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Quote } from "lucide-react";
 import { SectionHeader } from "./Issues";
@@ -56,9 +57,9 @@ export function Voices({ stories }: { stories: StoryData[] }) {
 
         <div className="mt-12 text-center text-sm text-white/50">
           Want to add your voice?{" "}
-          <a href="/voices/submit" className="text-crimson-400 hover:text-crimson-300 underline underline-offset-4">
+          <Link href="/voices/submit" className="text-crimson-400 hover:text-crimson-300 underline underline-offset-4">
             Submit your story anonymously
-          </a>
+          </Link>
         </div>
       </div>
     </section>
