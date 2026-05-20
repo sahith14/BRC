@@ -57,7 +57,15 @@ export function Footer() {
             © {new Date().getFullYear()} BRC · A people&apos;s movement
           </div>
           <div className="flex items-center gap-5">
-            <Link href="#" aria-label="Instagram" className="hover:text-white transition-colors"><Instagram size={18} /></Link>
+            <a
+              href="https://www.instagram.com/baratharashtracockroachs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram — @baratharashtracockroachs"
+              className="hover:text-white transition-colors"
+            >
+              <Instagram size={18} />
+            </a>
             <Link href="#" aria-label="Twitter" className="hover:text-white transition-colors"><Twitter size={18} /></Link>
             <Link href="#" aria-label="YouTube" className="hover:text-white transition-colors"><Youtube size={18} /></Link>
           </div>

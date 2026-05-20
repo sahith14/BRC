@@ -19,10 +19,12 @@ COPY . .
 # Learn more here: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Dummy variables for build time (will use runtime envs in production)
-ENV ADMIN_USER=admin
-ENV ADMIN_PASS=pass
-ENV SESSION_SECRET=secret
+# Build-time env. Real values are injected as Fly.io secrets at runtime
+# (`flyctl secrets set ADMIN_USER=... ADMIN_PASS=... SESSION_SECRET=...`).
+# We deliberately avoid baking dummy credentials into the image.
+ENV ADMIN_USER=""
+ENV ADMIN_PASS=""
+ENV SESSION_SECRET=""
 
 RUN npm run build
 

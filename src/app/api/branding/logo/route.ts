@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { mutate, getDB, uid } from "@/lib/db";
 import { v2 as cloudinary } from "cloudinary";
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'brc',
-  api_key: process.env.CLOUDINARY_API_KEY || '181453913954945',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'JlEnuZafK0rD559M8uOijf5c3tA'
-});
+const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_KEY = process.env.CLOUDINARY_API_KEY || "";
+const CLOUDINARY_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const CLOUDINARY_CONFIGURED =
+  CLOUDINARY_CLOUD && CLOUDINARY_KEY && CLOUDINARY_SECRET;
+
+if (CLOUDINARY_CONFIGURED) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD,
+    api_key: CLOUDINARY_KEY,
+    api_secret: CLOUDINARY_SECRET,
+  });
+}
 
 export async function GET() {
   const db = await getDB();
@@ -48,6 +56,17 @@ export async function POST(req: Request) {
   const safeExt = allowed.includes(ext) ? ext : ".png";
 
   const buf = Buffer.from(await file.arrayBuffer());
+
+  if (!CLOUDINARY_CONFIGURED) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Cloudinary is not configured on this server. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.",
+      },
+      { status: 503 }
+    );
+  }
 
   // Upload to Cloudinary
   let newUrl = "";

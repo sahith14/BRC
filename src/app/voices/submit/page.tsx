@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Send, Check, ShieldCheck } from "lucide-react";
+import { HAS_BACKEND, apiUrl } from "@/lib/api";
 
 const ROLES = ["Student","Aspirant","Farmer","Worker","Citizen","Patient","Commuter","Other"];
 
@@ -21,8 +22,19 @@ export default function SubmitStoryPage() {
     }
     setErr(null);
     setSubmitting(true);
+
+    // Without a backend wired up, keep the cinematic "Received" UX so the
+    // page never feels broken to a visitor.
+    if (!HAS_BACKEND) {
+      setTimeout(() => {
+        setDone(true);
+        setSubmitting(false);
+      }, 700);
+      return;
+    }
+
     try {
-      await fetch("/api/stories", {
+      await fetch(apiUrl("/api/stories"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)

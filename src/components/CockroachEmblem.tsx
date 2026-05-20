@@ -2,6 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { HAS_BACKEND, apiUrl } from "@/lib/api";
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const DEFAULT_LOGO = `${BASE_PATH}/logo.png`;
 
 export function CockroachEmblem({
   className,
@@ -12,13 +16,30 @@ export function CockroachEmblem({
   size?: number;
   priority?: boolean;
 }) {
-  const [src, setSrc] = useState("/logo.png");
+  const [src, setSrc] = useState(DEFAULT_LOGO);
 
   useEffect(() => {
-    // Fetch current logo URL from branding API
-    fetch("/api/branding/logo", { method: "HEAD" })
-      .then(() => setSrc(`/api/branding/logo?v=${Date.now()}`))
-      .catch(() => setSrc("/logo.png"));
+    // The branding endpoint only exists on the dynamic deployment.
+    if (!HAS_BACKEND) return;
+    let cancelled = false;
+    const target = apiUrl("/api/branding/logo");
+    fetch(target, { method: "HEAD" })
+      .then((res) => {
+        if (cancelled) return;
+        // fetch() resolves on 4xx/5xx too, so we must check .ok explicitly
+        // before trusting the dynamic endpoint with our <img src>.
+        if (res.ok) {
+          setSrc(`${target}?v=${Date.now()}`);
+        } else {
+          setSrc(DEFAULT_LOGO);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSrc(DEFAULT_LOGO);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

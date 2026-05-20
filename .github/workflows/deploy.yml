@@ -1,0 +1,90 @@
+name: Deploy BRC to GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # Decide what URL the site will live at.
+      #   - If repo Variable SITE_BASE_PATH is set, use it (caller knows best).
+      #   - Else, if SITE_DOMAIN is set, the site is on a custom domain root → empty basePath.
+      #   - Else, the site is on github.io/<repo>/ → basePath = "/<repo>".
+      - name: Compute build configuration
+        id: cfg
+        shell: bash
+        run: |
+          if [ -n "${{ vars.SITE_BASE_PATH }}" ]; then
+            base="${{ vars.SITE_BASE_PATH }}"
+          elif [ -n "${{ vars.SITE_DOMAIN }}" ]; then
+            base=""
+          else
+            base="/${{ github.event.repository.name }}"
+          fi
+          echo "base=${base}"
+          echo "base=${base}" >> "$GITHUB_OUTPUT"
+
+      - name: Build static export
+        env:
+          # ---------------------------------------------------------------
+          # Configure these as GitHub repo Variables (Settings → Variables → Actions)
+          #
+          #   SITE_DOMAIN          e.g. bharatarashtracockroaches.org
+          #                        Adds a CNAME file. Implies basePath="" if
+          #                        SITE_BASE_PATH is not separately set.
+          #
+          #   SITE_BASE_PATH       e.g. "/BRC". Leave empty for a custom
+          #                        domain. If left empty AND SITE_DOMAIN is
+          #                        empty, the workflow defaults this to
+          #                        "/<repo-name>" so project pages work
+          #                        out of the box.
+          #
+          #   NEXT_PUBLIC_API_BASE e.g. https://api.bharatarashtracockroaches.org
+          #                        Where the static frontend should send
+          #                        /api/* requests. Empty = no backend; the
+          #                        UI gracefully simulates submissions.
+          # ---------------------------------------------------------------
+          SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
+          SITE_BASE_PATH: ${{ steps.cfg.outputs.base }}
+          NEXT_PUBLIC_API_BASE: ${{ vars.NEXT_PUBLIC_API_BASE }}
+        run: npm run build:static
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

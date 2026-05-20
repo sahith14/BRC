@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { ArrowRight, Check, Users } from "lucide-react";
+import { HAS_BACKEND, apiUrl } from "@/lib/api";
 
 const STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Delhi","Goa","Gujarat",
@@ -18,11 +19,13 @@ export function Join({ memberCount: initialCount }: { memberCount: number }) {
   const [error, setError] = useState<string | null>(null);
   const [liveCount, setLiveCount] = useState(initialCount);
 
-  // Poll for live member count every 10s
+  // Poll for live member count every 10s — skipped on the static build
+  // unless NEXT_PUBLIC_API_BASE has been configured to point at the backend.
   useEffect(() => {
+    if (!HAS_BACKEND) return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("/api/members");
+        const res = await fetch(apiUrl("/api/members"));
         const data = await res.json();
         if (data.count) setLiveCount(data.count);
       } catch { /* ignore */ }
@@ -38,8 +41,21 @@ export function Join({ memberCount: initialCount }: { memberCount: number }) {
     }
     setError(null);
     setSubmitting(true);
+
+    // Without a backend (a vanilla GitHub Pages build with no API base set)
+    // we still take the user through the "you're in" celebration so the UX
+    // is unchanged. The submission is dropped on the floor.
+    if (!HAS_BACKEND) {
+      setTimeout(() => {
+        setDone(true);
+        setLiveCount((prev) => prev + 1);
+        setSubmitting(false);
+      }, 600);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/members", {
+      const res = await fetch(apiUrl("/api/members"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(state)

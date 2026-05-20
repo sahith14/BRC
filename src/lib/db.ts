@@ -181,66 +181,122 @@ function seed(): DB {
   };
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://sahithr601_db_user:1fbAxMG4eDeZfO2N@cluster0.u5uofde.mongodb.net/?appName=Cluster0";
-let client: MongoClient | null = null;
-let dbInstance: any = null;
+// ── Storage backend ─────────────────────────────────────────────────────────
+//
+// Two modes, picked at runtime by inspecting MONGODB_URI:
+//
+//   1. Mongo mode   — set MONGODB_URI to a connection string. Reads/writes
+//                     the `app_state` collection in DB `brc_platform`.
+//                     Best for production (Fly.io with a remote Mongo).
+//
+//   2. File mode    — leave MONGODB_URI unset. State lives in
+//                     ./data/db.json. Best for local dev and for tiny
+//                     single-machine deploys without a database.
+//
+// Either way, the in-memory `cache` is the source of truth for the
+// running process; persistence is just where it gets written.
+const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
+const USE_MONGO = MONGODB_URI.length > 0;
+
+let mongoClient: MongoClient | null = null;
+let mongoDbInstance: any = null;
 
 async function getMongoCollection() {
-  if (!client) {
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    dbInstance = client.db("brc_platform");
+  if (!USE_MONGO) {
+    throw new Error("MongoDB is not configured (MONGODB_URI is empty)");
   }
-  return dbInstance.collection("app_state");
+  if (!mongoClient) {
+    mongoClient = new MongoClient(MONGODB_URI);
+    await mongoClient.connect();
+    mongoDbInstance = mongoClient.db("brc_platform");
+  }
+  return mongoDbInstance.collection("app_state");
+}
+
+async function readFromFile(): Promise<DB | null> {
+  try {
+    const raw = await fs.readFile(DB_PATH, "utf8");
+    return JSON.parse(raw) as DB;
+  } catch {
+    return null;
+  }
+}
+
+async function writeToFile(db: DB): Promise<void> {
+  try {
+    if (!fsSync.existsSync(DATA_DIR))
+      fsSync.mkdirSync(DATA_DIR, { recursive: true });
+    await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
+  } catch (err) {
+    // File mode treats this as fatal; Mongo mode treats it as best-effort.
+    if (!USE_MONGO) throw err;
+  }
 }
 
 let cache: DB | null = null;
 
 export async function getDB(): Promise<DB> {
   if (cache) return cache;
-  
-  const col = await getMongoCollection();
-  const doc = await col.findOne({ _id: "master_db" });
-  
-  if (doc) {
-    cache = doc.data as DB;
-    const s = seed();
-    cache = {
-      ...s,
-      ...cache,
-      branding: { ...s.branding, ...cache.branding },
-      content: { ...s.content, ...cache.content },
-      analytics: cache.analytics || s.analytics
-    };
-    return cache;
+
+  const s = seed();
+
+  if (USE_MONGO) {
+    try {
+      const col = await getMongoCollection();
+      const doc = await col.findOne({ _id: "master_db" });
+      if (doc) {
+        cache = {
+          ...s,
+          ...(doc.data as DB),
+          branding: { ...s.branding, ...(doc.data as DB).branding },
+          content: { ...s.content, ...(doc.data as DB).content },
+          analytics: (doc.data as DB).analytics || s.analytics,
+        };
+        return cache;
+      }
+      // First-time Mongo setup: hydrate from any local file backup, else seed.
+      const fromFile = await readFromFile();
+      cache = fromFile || s;
+      await writeDB(cache);
+      return cache;
+    } catch (err) {
+      // Mongo unreachable — degrade to file mode rather than 500 on every request.
+      console.warn(
+        "[db] MongoDB connection failed, falling back to file mode:",
+        (err as Error).message
+      );
+    }
   }
-  
-  // Migration: try to read local file if it exists, otherwise use seed
-  let localData: DB | null = null;
-  try {
-    const raw = await fs.readFile(DB_PATH, "utf8");
-    localData = JSON.parse(raw) as DB;
-  } catch { /* ignore */ }
-  
-  cache = localData || seed();
-  await writeDB(cache);
+
+  // File mode (or Mongo failover).
+  const fromFile = await readFromFile();
+  cache = fromFile || s;
+  if (!fromFile) await writeToFile(cache);
   return cache;
 }
 
 export async function writeDB(db: DB): Promise<void> {
   cache = db;
-  const col = await getMongoCollection();
-  await col.updateOne(
-    { _id: "master_db" },
-    { $set: { data: db, updatedAt: new Date() } },
-    { upsert: true }
-  );
-  
-  // Best-effort local backup for dev
-  try {
-    if (!fsSync.existsSync(DATA_DIR)) fsSync.mkdirSync(DATA_DIR, { recursive: true });
-    await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
-  } catch { /* ignore */ }
+  if (USE_MONGO) {
+    try {
+      const col = await getMongoCollection();
+      await col.updateOne(
+        { _id: "master_db" },
+        { $set: { data: db, updatedAt: new Date() } },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.warn(
+        "[db] MongoDB write failed, persisting to file only:",
+        (err as Error).message
+      );
+    }
+    // Best-effort local backup whenever Mongo is the primary store.
+    await writeToFile(db).catch(() => {});
+    return;
+  }
+  // File mode is authoritative.
+  await writeToFile(db);
 }
 
 export async function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {

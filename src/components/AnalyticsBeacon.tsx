@@ -2,27 +2,36 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { HAS_BACKEND, apiUrl } from "@/lib/api";
 
 export function AnalyticsBeacon() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Fire a pageview event for every page navigation
+    // No backend wired up (e.g. plain GitHub Pages build) — silently skip.
+    if (!HAS_BACKEND) return;
+
+    const target = apiUrl("/api/analytics/track");
     const payload = { type: "pageview", path: pathname };
-    // Use sendBeacon for non-blocking tracking, fallback to fetch
+
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-      navigator.sendBeacon(
-        "/api/analytics/track",
-        new Blob([JSON.stringify(payload)], { type: "application/json" })
-      );
-    } else {
-      fetch("/api/analytics/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        keepalive: true
-      }).catch(() => {});
+      try {
+        navigator.sendBeacon(
+          target,
+          new Blob([JSON.stringify(payload)], { type: "application/json" })
+        );
+        return;
+      } catch {
+        /* fall through to fetch */
+      }
     }
+
+    fetch(target, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
   }, [pathname]);
 
   return null;
