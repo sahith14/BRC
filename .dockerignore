@@ -6,6 +6,5 @@ README.md
 .next
 .git
 .env.local
-.vercel
 data
 public/uploads

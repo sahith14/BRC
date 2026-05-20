@@ -49,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -58,7 +58,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-ink-900 text-white antialiased selection:bg-crimson-500 selection:text-white">
+      <body
+        className="bg-ink-900 text-white antialiased selection:bg-crimson-500 selection:text-white"
+        suppressHydrationWarning
+      >
         <AnalyticsBeacon />
         {children}
       </body>

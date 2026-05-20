@@ -87,7 +87,7 @@ The dev server is same-origin, so `ALLOWED_ORIGINS` and `NEXT_PUBLIC_API_BASE` a
 
 The codebase supports three.
 
-### A) Single-host dynamic (Fly.io / Vercel / Render / Docker)
+### A) Single-host dynamic (Fly.io / Render / Docker)
 
 Best when you want everything in one place: server-rendered pages, admin UI, and the API all on the same origin.
 

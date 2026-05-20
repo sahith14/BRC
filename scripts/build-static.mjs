@@ -20,7 +20,7 @@
 //   - src/app/api                (server-only route handlers)
 //
 // They are always restored — even if the build fails — so the local dev
-// experience and Fly/Vercel deployments are untouched.
+// experience and the Fly.io deployment are untouched.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
