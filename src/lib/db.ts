@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
+import { MongoClient } from "mongodb";
 import { ISSUES as SEED_ISSUES, VOICES as SEED_VOICES, MEMBERS as SEED_MEMBERS, COMPLAINTS as SEED_COMPLAINTS, MOVEMENT } from "./data";
 
 export type Branding = {
@@ -180,20 +181,29 @@ function seed(): DB {
   };
 }
 
-let cache: DB | null = null;
-let writeLock: Promise<void> = Promise.resolve();
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://sahithr601_db_user:1fbAxMG4eDeZfO2N@cluster0.u5uofde.mongodb.net/?appName=Cluster0";
+let client: MongoClient | null = null;
+let dbInstance: any = null;
 
-function ensureDir() {
-  if (!fsSync.existsSync(DATA_DIR)) fsSync.mkdirSync(DATA_DIR, { recursive: true });
+async function getMongoCollection() {
+  if (!client) {
+    client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    dbInstance = client.db("brc_platform");
+  }
+  return dbInstance.collection("app_state");
 }
+
+let cache: DB | null = null;
 
 export async function getDB(): Promise<DB> {
   if (cache) return cache;
-  ensureDir();
-  try {
-    const raw = await fs.readFile(DB_PATH, "utf8");
-    cache = JSON.parse(raw) as DB;
-    // Forward-compat: ensure all keys exist
+  
+  const col = await getMongoCollection();
+  const doc = await col.findOne({ _id: "master_db" });
+  
+  if (doc) {
+    cache = doc.data as DB;
     const s = seed();
     cache = {
       ...s,
@@ -203,21 +213,34 @@ export async function getDB(): Promise<DB> {
       analytics: cache.analytics || s.analytics
     };
     return cache;
-  } catch {
-    cache = seed();
-    await writeDB(cache);
-    return cache;
   }
+  
+  // Migration: try to read local file if it exists, otherwise use seed
+  let localData: DB | null = null;
+  try {
+    const raw = await fs.readFile(DB_PATH, "utf8");
+    localData = JSON.parse(raw) as DB;
+  } catch { /* ignore */ }
+  
+  cache = localData || seed();
+  await writeDB(cache);
+  return cache;
 }
 
 export async function writeDB(db: DB): Promise<void> {
   cache = db;
-  ensureDir();
-  // serialize writes
-  writeLock = writeLock.then(async () => {
+  const col = await getMongoCollection();
+  await col.updateOne(
+    { _id: "master_db" },
+    { $set: { data: db, updatedAt: new Date() } },
+    { upsert: true }
+  );
+  
+  // Best-effort local backup for dev
+  try {
+    if (!fsSync.existsSync(DATA_DIR)) fsSync.mkdirSync(DATA_DIR, { recursive: true });
     await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
-  });
-  await writeLock;
+  } catch { /* ignore */ }
 }
 
 export async function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {

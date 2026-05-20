@@ -1,0 +1,26 @@
+# fly.toml app configuration file generated for brc-platform
+
+app = "brc-platform" # You can change this to your desired app name
+primary_region = "sin" # Singapore region (change as needed, e.g., 'bom' for Mumbai, 'ams' for Amsterdam)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[mounts]]
+  source = "brc_data_vol"
+  destination = "/app/data"
+
+[[mounts]]
+  source = "brc_uploads_vol"
+  destination = "/app/public/uploads"

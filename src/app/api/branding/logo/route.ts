@@ -1,46 +1,35 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import fsSync from "node:fs";
-import path from "node:path";
 import { mutate, getDB, uid } from "@/lib/db";
+import { v2 as cloudinary } from "cloudinary";
 
-const PUBLIC_DIR = path.join(process.cwd(), "public");
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'brc',
+  api_key: process.env.CLOUDINARY_API_KEY || '181453913954945',
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'JlEnuZafK0rD559M8uOijf5c3tA'
+});
 
 export async function GET() {
   const db = await getDB();
-  // Resolve relative public file or external URL
-  // Strip any query params from stored URL
   const rawUrl = (db.branding.logoUrl || "/logo.png").split("?")[0];
-  let absolutePath: string | null = null;
-
-  if (rawUrl.startsWith("/")) {
-    absolutePath = path.join(PUBLIC_DIR, rawUrl.replace(/^\/+/, ""));
-    if (!fsSync.existsSync(absolutePath)) {
-      // Fallback to logo.png
-      absolutePath = path.join(PUBLIC_DIR, "logo.png");
-    }
+  
+  if (rawUrl.startsWith("http")) {
+    return NextResponse.redirect(rawUrl);
   }
-
-  if (!absolutePath || !fsSync.existsSync(absolutePath)) {
-    return new NextResponse("Logo not found", { status: 404 });
+  
+  // Fallback for local dev if they still have a local URL
+  const PUBLIC_DIR = require("path").join(process.cwd(), "public");
+  const fs = require("node:fs");
+  const fsPromises = require("node:fs/promises");
+  let absolutePath = require("path").join(PUBLIC_DIR, "logo.png");
+  
+  if (fs.existsSync(absolutePath)) {
+    const buf = await fsPromises.readFile(absolutePath);
+    return new NextResponse(buf, {
+      headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=0, must-revalidate" }
+    });
   }
-
-  const ext = path.extname(absolutePath).toLowerCase();
-  const mime =
-    ext === ".png" ? "image/png" :
-    ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" :
-    ext === ".webp" ? "image/webp" :
-    ext === ".gif" ? "image/gif" :
-    ext === ".svg" ? "image/svg+xml" :
-    "application/octet-stream";
-
-  const buf = await fs.readFile(absolutePath);
-  return new NextResponse(buf, {
-    headers: {
-      "Content-Type": mime,
-      "Cache-Control": "public, max-age=0, must-revalidate"
-    }
-  });
+  
+  return new NextResponse("Logo not found", { status: 404 });
 }
 
 export async function POST(req: Request) {
@@ -54,18 +43,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "No file provided" }, { status: 400 });
   }
 
-  const ext = (file.name && path.extname(file.name).toLowerCase()) || ".png";
+  const ext = file.name ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : ".png";
   const allowed = [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"];
   const safeExt = allowed.includes(ext) ? ext : ".png";
 
-  // Save to public/logo<ext> (single file)
-  const filename = `logo${safeExt}`;
-  const dest = path.join(PUBLIC_DIR, filename);
   const buf = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(dest, buf);
 
-  // Store clean URL in DB (no query params)
-  const newUrl = `/${filename}`;
+  // Upload to Cloudinary
+  let newUrl = "";
+  try {
+    const uploadResponse = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: "brc_branding", resource_type: "auto" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(buf);
+    });
+    newUrl = uploadResponse.secure_url;
+  } catch (err) {
+    return NextResponse.json({ ok: false, error: "Cloudinary upload failed" }, { status: 500 });
+  }
 
   await mutate(async (db) => {
     db.branding.logoUrl = newUrl;
