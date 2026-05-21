@@ -2,6 +2,8 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { CockroachEmblem } from "@/components/CockroachEmblem";
 import { ISSUES, MOVEMENT } from "@/lib/data";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
 export const metadata = {
   title: "Manifesto",
@@ -28,17 +30,29 @@ export default function ManifestoPage() {
           <p className="mt-8 text-lg md:text-xl text-white/70 leading-relaxed max-w-3xl mx-auto">
             {MOVEMENT.manifesto}
           </p>
+          <p className="mt-6 text-[11px] uppercase tracking-[0.3em] text-crimson-300">
+            Click any demand to read the full cinematic deep-dive.
+          </p>
         </div>
       </section>
 
       <section className="relative bg-ink-900 py-20 md:py-28">
-        <div className="mx-auto max-w-4xl px-5 md:px-8 space-y-14">
+        <div className="mx-auto max-w-4xl px-5 md:px-8 space-y-10">
           {ISSUES.map((issue) => (
-            <article key={issue.slug} id={issue.slug} className="border-l-2 border-crimson-500/60 pl-6 md:pl-10">
-              <div className="text-[10px] uppercase tracking-[0.35em] text-white/40">
-                Demand {issue.number}
+            <Link
+              key={issue.slug}
+              href={`/manifesto/${issue.slug}`}
+              id={issue.slug}
+              className="group block border-l-2 border-crimson-500/60 pl-6 md:pl-10 hover:border-crimson-500 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.35em] text-white/40">
+                <span>Demand {issue.number}</span>
+                <ArrowUpRight
+                  size={16}
+                  className="opacity-40 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all"
+                />
               </div>
-              <h2 className="mt-3 font-display text-3xl md:text-5xl leading-tight">
+              <h2 className="mt-3 font-display text-3xl md:text-5xl leading-tight group-hover:text-white">
                 {issue.title.toUpperCase()}
               </h2>
               <p className="mt-5 text-white/70 leading-relaxed">{issue.description}</p>
@@ -53,7 +67,10 @@ export default function ManifestoPage() {
                 </ul>
               )}
               <p className="mt-6 italic text-crimson-300">&ldquo;{issue.punch}&rdquo;</p>
-            </article>
+              <div className="mt-5 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-crimson-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                Read the full file →
+              </div>
+            </Link>
           ))}
         </div>
       </section>

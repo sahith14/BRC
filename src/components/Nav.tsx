@@ -8,10 +8,12 @@ import { CockroachEmblem } from "./CockroachEmblem";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/#issues", label: "Issues" },
-  { href: "/#reality", label: "Reality" },
-  { href: "/#voices", label: "Voices" },
+  { href: "/voices", label: "Voices" },
+  { href: "/education-reality", label: "Education" },
   { href: "/manifesto", label: "Manifesto" },
+  { href: "/need-change", label: "Need Change" },
+  { href: "/demands", label: "Demands" },
+  { href: "/black-files", label: "Black Files" },
   { href: "/#join", label: "Join" }
 ];
 
@@ -46,19 +48,19 @@ export function Nav() {
           </div>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-5 lg:gap-7">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm uppercase tracking-[0.2em] text-white/70 hover:text-white transition-colors"
+              className="text-[11px] lg:text-xs uppercase tracking-[0.18em] lg:tracking-[0.2em] text-white/70 hover:text-white transition-colors whitespace-nowrap"
             >
               {l.label}
             </Link>
           ))}
           <Link
             href="/#join"
-            className="btn-cinema relative inline-flex items-center gap-2 bg-crimson-500 hover:bg-crimson-400 text-white px-5 py-2.5 text-sm uppercase tracking-[0.2em] font-semibold"
+            className="btn-cinema relative inline-flex items-center gap-2 bg-crimson-500 hover:bg-crimson-400 text-white px-4 lg:px-5 py-2.5 text-[11px] lg:text-xs uppercase tracking-[0.2em] font-semibold whitespace-nowrap"
           >
             Join
           </Link>

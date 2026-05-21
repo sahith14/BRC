@@ -68,8 +68,10 @@ async function verify(token: string | undefined, secret: string | undefined) {
   return Date.now() - ts < SESSION_TTL_MS;
 }
 
-// ── Middleware entrypoint ───────────────────────────────────────────────────
-export async function middleware(req: NextRequest) {
+// ── Proxy entrypoint (formerly middleware) ─────────────────────────────────
+// Next.js 16 renamed the `middleware.ts` file convention to `proxy.ts`.
+// Same semantics, new name. We keep the function name `proxy` to align.
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const origin = req.headers.get("origin");
 

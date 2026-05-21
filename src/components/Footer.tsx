@@ -26,14 +26,15 @@ export function Footer() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-sm">
             <FooterCol title="Movement">
               <FooterLink href="/manifesto">Manifesto</FooterLink>
-              <FooterLink href="/#issues">Issues</FooterLink>
-              <FooterLink href="/#reality">Reality</FooterLink>
-              <FooterLink href="/#voices">Voices</FooterLink>
+              <FooterLink href="/voices">Public Voices</FooterLink>
+              <FooterLink href="/education-reality">Education Reality</FooterLink>
+              <FooterLink href="/black-files">Black Files</FooterLink>
             </FooterCol>
-            <FooterCol title="Act">
+            <FooterCol title="Participate">
+              <FooterLink href="/demands">People&apos;s Demands</FooterLink>
+              <FooterLink href="/need-change">Need Change</FooterLink>
+              <FooterLink href="/voices/submit">Submit a story</FooterLink>
               <FooterLink href="/#join">Join</FooterLink>
-              <FooterLink href="/voices/submit">Submit story</FooterLink>
-              <FooterLink href="/admin">Admin</FooterLink>
             </FooterCol>
             <FooterCol title="Contact">
               <FooterLink href="mailto:contact@bharatarashtracockroaches.org">
@@ -42,6 +43,7 @@ export function Footer() {
               <FooterLink href="#">
                 <span className="inline-flex items-center gap-2"><Send size={14} /> Telegram</span>
               </FooterLink>
+              <FooterLink href="/admin">Admin</FooterLink>
             </FooterCol>
           </div>
         </div>

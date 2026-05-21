@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AnalyticsBeacon } from "@/components/AnalyticsBeacon";
+import { CustomCursor } from "@/components/CustomCursor";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://bharatarashtracockroaches.org"),
@@ -62,6 +64,8 @@ export default function RootLayout({
         className="bg-ink-900 text-white antialiased selection:bg-crimson-500 selection:text-white"
         suppressHydrationWarning
       >
+        <LoadingScreen />
+        <CustomCursor />
         <AnalyticsBeacon />
         {children}
       </body>

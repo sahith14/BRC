@@ -7,6 +7,12 @@ import { Voices } from "@/components/Voices";
 import { ManifestoBlock } from "@/components/Manifesto";
 import { Join } from "@/components/Join";
 import { Footer } from "@/components/Footer";
+import {
+  PaidForDreams,
+  DontBeASlave,
+  ThisCountryIsYoursToo,
+  DontBeSilentAgain
+} from "@/components/HomeSections";
 import { ISSUES, VOICES, MEMBERS, MOVEMENT } from "@/lib/data";
 
 // Statically generated. We render from the seed data so the site builds
@@ -45,9 +51,13 @@ export default function HomePage() {
       <Marquee />
       <Issues issues={publishedIssues} />
       <Reality />
+      <PaidForDreams />
       <Voices stories={approvedStories} />
       <ManifestoBlock content={content} />
+      <DontBeASlave />
       <Join memberCount={MEMBERS.length} />
+      <ThisCountryIsYoursToo />
+      <DontBeSilentAgain />
       <Footer />
     </main>
   );

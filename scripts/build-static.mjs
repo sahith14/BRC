@@ -15,7 +15,7 @@
 //                        frontend gracefully simulates form submissions.
 //
 // Before running `next build` we temporarily move:
-//   - src/middleware.ts          (not supported by `output: 'export'`)
+//   - src/proxy.ts              (was middleware.ts; not supported by 'export')
 //   - src/app/admin              (uses MongoDB, server actions, cookies)
 //   - src/app/api                (server-only route handlers)
 //
@@ -36,9 +36,15 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || "").trim();
 
 const moves = [
   {
+    live: path.join(root, "src", "proxy.ts"),
+    parked: path.join(root, "src", "proxy.ts.static-bak"),
+    label: "proxy.ts",
+  },
+  {
+    // Backwards-compat: also park a legacy middleware.ts if anyone reintroduces it.
     live: path.join(root, "src", "middleware.ts"),
     parked: path.join(root, "src", "middleware.ts.static-bak"),
-    label: "middleware.ts",
+    label: "middleware.ts (legacy)",
   },
   {
     live: path.join(root, "src", "app", "admin"),
